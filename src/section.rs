@@ -38,15 +38,15 @@ impl section_prototype{
         let mut qy = (self.stringers[0] as f64) * centers[0].y * self.area_stringer;
         qy += (self.stringers[1] as f64) * centers[2].y * self.area_stringer;
 
-        let mut qy = (self.stringers[0] as f64) * centers[0].x * self.area_stringer;
-        qy += (self.stringers[1] as f64) * centers[2].x * self.area_stringer;
+        let mut qx = (self.stringers[0] as f64) * centers[0].x * self.area_stringer;
+        qx += (self.stringers[1] as f64) * centers[2].x * self.area_stringer;
 
         for i in 0..self.vertices.len(){
             qy += length[i]*self.skin_thicknesses[i] * centers[i].y;
-            qy += length[i]*self.skin_thicknesses[i] * centers[i].x;
+            qx += length[i]*self.skin_thicknesses[i] * centers[i].x;
         }
 
-        Vec2{x:qy/area_total, y:qy/area_total}
+        Vec2{x:qx/area_total, y:qy/area_total}
     }
 
     fn inertia(&self, centro: Vec2) -> (f64, f64, f64){
@@ -114,7 +114,7 @@ impl section_prototype{
         corners[1] = (length[0]/ds).round() as usize;
         corners[2] = ((length[0]+length[1])/ds).round() as usize;
         corners[3] = ((length[0]+length[1]+length[2])/ds).round() as usize;
-        corners[4] = subdivs as usize;
+        corners[4] = (subdivs-1) as usize;
 
         for i in 0..subdivs{
             if i < corners[1]{
@@ -122,18 +122,21 @@ impl section_prototype{
                 vc.push(xyt{x: pos.x, y: pos.y, t: self.skin_thicknesses[0]})
             }
             else if i < corners[2]{
-                let pos = self.vertices[1].add(&unitvecs[1].scale((i as f64)*ds)).substract(&centro);
+                let pos = self.vertices[1].add(&unitvecs[1].scale(((i-corners[1]) as f64)*ds)).substract(&centro);
                 vc.push(xyt{x: pos.x, y: pos.y, t: self.skin_thicknesses[1]})
             }
             else if i < corners[3]{
-                let pos = self.vertices[2].add(&unitvecs[2].scale((i as f64)*ds)).substract(&centro);
+                let pos = self.vertices[2].add(&unitvecs[2].scale(((i-corners[2]) as f64)*ds)).substract(&centro);
                 vc.push(xyt{x: pos.x, y: pos.y, t: self.skin_thicknesses[2]})
             }
             else{
-                let pos = self.vertices[3].add(&unitvecs[3].scale((i as f64)*ds)).substract(&centro);
+                let pos = self.vertices[3].add(&unitvecs[3].scale(((i-corners[3]) as f64)*ds)).substract(&centro);
                 vc.push(xyt{x: pos.x, y: pos.y, t: self.skin_thicknesses[3]})
             }
         }
+
+        //println!("{}, {}, {}, {}, {}", vc[corners[0]].x, vc[corners[1]].x, vc[corners[2]].x, vc[corners[3]].x, vc[corners[4]].x);
+        //println!("{}, {}, {}, {}, {}", vc[corners[0]].y, vc[corners[1]].y, vc[corners[2]].y, vc[corners[3]].y, vc[corners[4]].y);
 
         (vc, corners, ds)
 
@@ -141,7 +144,7 @@ impl section_prototype{
 
     pub fn generateanalysable(&self) -> Analysable_section{
         let centroid = self.centroid();
-        let Inertias = self.inertia(centroid);
+        let inertias = self.inertia(centroid);
         let xytmapping = self.xytmap(centroid);
 
         Analysable_section{
@@ -150,9 +153,9 @@ impl section_prototype{
             stringers: self.stringers,
             area_stringer: self.area_stringer,
             centroid: centroid,
-            Ixx: Inertias.0,
-            Iyy: Inertias.1,
-            Ixy: Inertias.2,
+            Ixx: inertias.0,
+            Iyy: inertias.1,
+            Ixy: inertias.2,
             xytmap: xytmapping.0,
             corners: xytmapping.1,
             ds: xytmapping.2,
@@ -240,6 +243,25 @@ impl Analysable_section{
         }
 
         (-1. * integral1/integral2, vc)
+    }
+
+    pub fn get_weight_per_len(&self, rho: f64) -> f64{
+        let mut length: [f64; 4] = [0.; 4];
+
+        for i in 0..self.vertices.len(){
+            length[i] = self.vertices[(i+1)%4].substract(&self.vertices[i]).magnitude();
+        }
+
+        let mut weights: Vec<f64> = Vec::new();
+
+        for i in 0..length.len(){
+            weights.push(length[i]*rho*self.skin_thicknesses[i]);
+        }
+
+        weights.push((self.stringers.iter().sum::<u16>() as f64) * self.area_stringer * rho);
+
+        weights.into_iter().sum()
+       
     }
 }
 

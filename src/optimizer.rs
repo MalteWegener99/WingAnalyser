@@ -1,16 +1,28 @@
 use Vector::Vec2;
 use section::section_prototype;
 use std::u16;
+use std::fs::File;
+use std::io::prelude::*;
+use std::fmt;
+use std::io::LineWriter;
 
 pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2; 4]) -> section_prototype{
-    let taumax = 207e6;
-    let sigmax = 386e6;
+    let taumax: f64 = 207000000.;
+    let sigmax: f64 = 386000000.;
 
-    println!("{}, {}", taumax, sigmax);
+    let mut logfile = File::create("Optimization.log");
+    let mut logfile = match logfile {
+        Ok(file) => file,
+        Err(error) => {
+            panic!("There was a problem opening the file: {:?}", error)
+        },
+    };
+
+    let mut logfile = LineWriter::new(logfile);
     //first iteration
     let mut section = section_prototype{
         vertices: verti,
-        skin_thicknesses: [0.001; 4],
+        skin_thicknesses: [0.0001; 4],
         stringers: [2; 2],
         area_stringer: 740e-6,
     };
@@ -30,48 +42,54 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
         //breakoutlogic
         let mut ct = 0;
         for i in 0..4{
-            if maxes.0[i].abs() < taumax{
+            if maxes.0[i].abs() <= taumax{
                 ct += 1;
+            }
+            else{
+                logfile.write_all(format!("{} tau not succeded ({:.2}, {:.2})/", i, maxes.0[i]/taumax, maxes.0[i]/1000000.).as_bytes());
             }
         }
         for i in 0..2{
-            if maxes.1[i*2].abs() < sigmax{
+            if maxes.1[i*2].abs() <= sigmax{
                 ct += 1;
             }
+            else{
+                logfile.write_all(format!("{} sig not succeded ({:.2}, {:.2})/", i, maxes.1[i*2]/sigmax, maxes.1[i*2]/1000000.).as_bytes());
+            }
         }
+
+        logfile.write_all(format!("{} {} {}\r\n", counter, ct, generated.get_weight_per_len(2700.)).as_bytes());
         if ct >= 6{
             done = true;
         }
+        else{
+            //optimization logic
+            //the 1.1 is for stable convergance
+            for i in 0..4{
+                if maxes.0[i].abs()*1.1 >= taumax{
+                    skin_[i] += factor;
+                }
+                else if skin_[i] > (2.*factor){
+                    skin_[i] -= factor;
+                }
+            }
 
-        //optimization logic
-        //first the shear(thats maxes.0)
-        for i in 0..4{
-            if maxes.0[i].abs() > taumax{
-                skin_[i] += factor;
-            }
-            else if skin_[i] > (2.*factor){
-                skin_[i] -= factor;
-            }
-        }
-
-        for i in 0..2{
-            if maxes.1[i*2].abs() > sigmax{
-                strs_[i] += 1;
-            }
-            else{
-                if strs_[i] >= 2{
+            for i in 0..2{
+                if maxes.1[i*2].abs()*1.1 >= sigmax{
+                    strs_[i] += 2;
+                }
+                else if strs_[i] > 2{
                     strs_[i] -= 1;
                 }
             }
+            section = section_prototype{
+                vertices: verti,
+                skin_thicknesses: skin_,
+                stringers: strs_,
+                area_stringer: astr_,
+            };
         }
-
-        section = section_prototype{
-            vertices: verti,
-            skin_thicknesses: skin_,
-            stringers: strs_,
-            area_stringer: astr_,
-        };
     }
-
+    println!("Converged in {} iterations", counter);
     section
 }
