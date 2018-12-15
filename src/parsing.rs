@@ -30,9 +30,9 @@ pub fn parse(location: &str) -> Vec<Dataset>{
         if split2.len() > 0{
             vc.push(Dataset{
                 y: split2[0],
-                shear: split2[1],
-                moment: split2[3],
-                torsion: split2[5]/10.,
+                shear: split2[1]*1.5,
+                moment: split2[3]*1.5,
+                torsion: split2[5]*1.5,
             })
         }
     }

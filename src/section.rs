@@ -263,6 +263,36 @@ impl Analysable_section{
         weights.into_iter().sum()
        
     }
+
+    fn line_integral(&self) -> f64{
+        let mut sum = 0.;
+        for element in &self.xytmap{
+            sum += self.ds /element.t;
+        }
+
+        sum
+    }
+
+    pub fn get_torsion_per_length(&self, torque: f64) -> f64{
+        let Area = (self.vertices[0].substract(&self.vertices[3]).magnitude()+self.vertices[0].substract(&self.vertices[3]).magnitude())/2.*(self.vertices[0].x-self.vertices[1].x).abs();
+
+        torque/(4.*Area.powi(2)*2.6e10)*self.line_integral()
+    }
+    
+    pub fn get_buckling_stress(&self) -> [f64; 2]{
+        let mut length: [f64; 2] = [0.; 2];
+        let mut kcr: [f64; 2] = [0.; 2];
+
+        for i in 0..2{
+            length[i] = self.vertices[i*2+1].substract(&self.vertices[i*2]).magnitude();
+            kcr[i] = (length[i]/(self.stringers[i] as f64)/0.5+(self.stringers[i] as f64)/length[i]*0.5).powi(2);
+        }
+        let v: f64 = 0.33;
+        let E: f64 = 6.9e10;
+
+        [kcr[0]*(3.1415 as f64).powi(2)*E/(12.*(1.-v.powi(2))*(length[0]/(self.stringers[0] as f64)/self.skin_thicknesses[0]).powi(2)),
+        kcr[1]*(3.1415 as f64).powi(2)*E/(12.*(1.-v.powi(2))*(length[1]/(self.stringers[1] as f64)/self.skin_thicknesses[2]).powi(2))]
+    }
 }
 
 pub trait Max_per_section{

@@ -6,9 +6,9 @@ use std::io::prelude::*;
 use std::fmt;
 use std::io::LineWriter;
 
-pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2; 4]) -> section_prototype{
+pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2; 4], minstr: u16) -> section_prototype{
     let taumax: f64 = 207000000.;
-    let sigmax: f64 = 386000000.;
+    let sigmax: f64 = 276000000.;
 
     let mut logfile = File::create("Optimization.log");
     let mut logfile = match logfile {
@@ -23,8 +23,8 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
     let mut section = section_prototype{
         vertices: verti,
         skin_thicknesses: [0.0001; 4],
-        stringers: [2; 2],
-        area_stringer: 740e-6,
+        stringers: [minstr; 2],
+        area_stringer: 1200e-6,
     };
 
     let mut done = false;
@@ -40,9 +40,10 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
         let maxes = generated.get_max_stress(torque, shear, moment);
 
         //breakoutlogic
+        let rotation = generated.get_torsion_per_length(torque)*0.1625;
         let mut ct = 0;
         for i in 0..4{
-            if maxes.0[i].abs() <= taumax{
+            if maxes.0[i].abs() <= taumax*1.05{
                 ct += 1;
             }
             else{
@@ -50,7 +51,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
             }
         }
         for i in 0..2{
-            if maxes.1[i*2].abs() <= sigmax{
+            if maxes.1[i*2].abs() <= sigmax*1.05 {
                 ct += 1;
             }
             else{
@@ -58,15 +59,19 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
             }
         }
 
+        if rotation <= 8.72e-4{
+            ct += 1;
+        }
+
         logfile.write_all(format!("{} {} {}\r\n", counter, ct, generated.get_weight_per_len(2700.)).as_bytes());
-        if ct >= 6{
+        if ct >= 7{
             done = true;
         }
         else{
             //optimization logic
             //the 1.1 is for stable convergance
             for i in 0..4{
-                if maxes.0[i].abs()*1.1 >= taumax{
+                if rotation*1.1 >= 8.72e-4 || maxes.0[i].abs()*1.15 >= taumax{
                     skin_[i] += factor;
                 }
                 else if skin_[i] > (2.*factor){
@@ -75,10 +80,10 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
             }
 
             for i in 0..2{
-                if maxes.1[i*2].abs()*1.1 >= sigmax{
-                    strs_[i] += 2;
+                if maxes.1[i*2].abs()*1.15 >= sigmax{
+                    strs_[i] += 1;
                 }
-                else if strs_[i] > 2{
+                else if strs_[i] > minstr{
                     strs_[i] -= 1;
                 }
             }
