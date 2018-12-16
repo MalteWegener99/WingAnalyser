@@ -39,7 +39,10 @@ fn main() {
     };
     let stringersinput = trimmed.parse::<u32>().unwrap();
 
-    let d = parse("output.csv");
+    let d: Vec<Dataset> = parse("output.csv")
+                            .into_iter()
+                            .filter(|&thing| thing.shear != 0.)
+                            .collect::<Vec<Dataset> >();
     let now = std::time::Instant::now();
     let mut counter: u32 = 0;
     let mut weight = 0.;
@@ -47,9 +50,6 @@ fn main() {
     let mut results: Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])> = Vec::new();
     println!("{:?}", d);
     for thing in &d{
-        if thing.shear == 0.{
-            continue;
-        }
         counter += 1;
         println!("{}", counter);
         let vertices = [Vec2{x: 0., y: 0.}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.0182}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.1051}.scale(chord(thing.y)),Vec2{x: 0., y: 0.1092}.scale(chord(thing.y))];
@@ -92,7 +92,10 @@ fn main() {
     }
     println!("saved1");
 
-    let d = parse("output-1.csv");
+    let d = parse("output-1.csv")
+                            .into_iter()
+                            .filter(|&thing| thing.shear != 0.)
+                            .collect::<Vec<Dataset> >();
     let now = std::time::Instant::now();
     let mut counter: u32 = 0;
     let mut weight = 0.;
@@ -100,9 +103,6 @@ fn main() {
     let mut results: Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])> = Vec::new();
     println!("{:?}", d);
     for thing in &d{
-        if thing.shear == 0.{
-            continue;
-        }
         counter += 1;
         println!("{}", counter);
         let vertices = [Vec2{x: 0., y: 0.}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.0182}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.1051}.scale(chord(thing.y)),Vec2{x: 0., y: 0.1092}.scale(chord(thing.y))];
