@@ -85,6 +85,7 @@ trait save{
 impl save for Vec<(f64, [f64; 4], [u16; 2])>{
     fn save(&self, file: &str) -> Result<(),io::Error>{
         let mut output = File::create(file)?;
+        output.write_all("y,LowerSkin,RearSpar,UpperSkin,FrontSpar,StringersBot,StringersTop\r\n".as_bytes())?;
         for thing in self{
             output.write_all(format!("{},{},{},{},{},{},{}\r\n", thing.0, thing.1[0], thing.1[1], thing.1[2], thing.1[3], thing.2[0], thing.2[1]).as_bytes())?;
         }
@@ -215,6 +216,6 @@ fn main(){
     };
     let flaggy = trimmed.parse::<i32>().unwrap();
 
-    analyse("output.csv", stringersinput, flaggy > 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design.csv");
-    analyse("output-1.csv", stringersinput, flaggy > 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design-1.csv");
+    analyse("output.csv", stringersinput, flaggy == 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design.csv");
+    analyse("output-1.csv", stringersinput, flaggy != 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design-1.csv");
 }
