@@ -10,7 +10,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
     let taumax: f64 = 207000000.;
     let sigmax: f64 = 276000000.;
 
-    let mut logfile = File::create("Optimization.log");
+    /*let mut logfile = File::create("Optimization.log");
     let mut logfile = match logfile {
         Ok(file) => file,
         Err(error) => {
@@ -18,7 +18,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
         },
     };
 
-    let mut logfile = LineWriter::new(logfile);
+    let mut logfile = LineWriter::new(logfile);*/
     //first iteration
     let mut section = section_prototype{
         vertices: verti,
@@ -47,7 +47,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
                 ct += 1;
             }
             else{
-                logfile.write_all(format!("{} tau not succeded ({:.2}, {:.2})/", i, maxes.0[i]/taumax, maxes.0[i]/1000000.).as_bytes());
+                //logfile.write_all(format!("{} tau not succeded ({:.2}, {:.2})/", i, maxes.0[i]/taumax, maxes.0[i]/1000000.).as_bytes());
             }
         }
         for i in 0..2{
@@ -55,7 +55,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
                 ct += 1;
             }
             else{
-                logfile.write_all(format!("{} sig not succeded ({:.2}, {:.2})/", i, maxes.1[i*2]/sigmax, maxes.1[i*2]/1000000.).as_bytes());
+                //logfile.write_all(format!("{} sig not succeded ({:.2}, {:.2})/", i, maxes.1[i*2]/sigmax, maxes.1[i*2]/1000000.).as_bytes());
             }
         }
 
@@ -63,7 +63,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
             ct += 1;
         }
 
-        logfile.write_all(format!("{} {} {}\r\n", counter, ct, generated.get_weight_per_len(2700.)).as_bytes());
+        //logfile.write_all(format!("{} {} {}\r\n", counter, ct, generated.get_weight_per_len(2700.)).as_bytes());
         if ct >= 7{
             done = true;
         }
@@ -81,7 +81,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
 
             for i in 0..2{
                 if maxes.1[i*2].abs()*1.15 >= sigmax{
-                    strs_[i] += 1;
+                    strs_[i] += 1*((i as u16)+1);
                 }
                 else if strs_[i] > minstr{
                     strs_[i] -= 1;

@@ -24,8 +24,11 @@ fn chord(y: f64) -> f64{
         return 10.02-(10.02-5.52)/(32.5-12.2)*(y-12.2);
     }
 }
+fn chordlen(y: f64) -> f64{
+    10.02-(10.02-5.52)/(32.5-12.2)*(y-12.2)
+}
 
-fn analyse(file: &str, minstr: u16) -> Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
+fn analyse(file: &str, minstr: u16, flag: bool) -> Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
     let d: Vec<Dataset> = parse(file)
                             .into_iter()
                             .filter(|&thing| thing.shear != 0.)
@@ -39,7 +42,12 @@ fn analyse(file: &str, minstr: u16) -> Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 
     for thing in &d{
         counter += 1;
         println!("{}", counter);
-        let vertices = [Vec2{x: 0., y: 0.}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.0182}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.1051}.scale(chord(thing.y)),Vec2{x: 0., y: 0.1092}.scale(chord(thing.y))];
+        let vertices = if flag{
+            [Vec2{x: 0., y: 0.}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.0182}.scale(chord(thing.y)),Vec2{x: 0.45, y: 0.1051}.scale(chord(thing.y)),Vec2{x: 0., y: 0.1092}.scale(chord(thing.y))]
+        }
+        else{
+            [Vec2{x: 0., y: 0.},Vec2{x: 0.45*chordlen(thing.y), y: 0.0182*chord(thing.y)},Vec2{x: 0.45*chordlen(thing.y), y: 0.1051*chord(thing.y)},Vec2{x: 0., y: 0.1092*chord(thing.y)}]
+        };
         let section = optimize(thing.torsion, thing.shear, thing.moment, 0.00001, vertices, 30).generateanalysable();
         let maxes = section.get_max_stress(thing.torsion, thing.shear, thing.moment);
         for i in 0..4{
@@ -160,7 +168,7 @@ impl discretize for Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
 }
 
 
-fn main() {
+fn main(){
     println!("Enter the minumum amount of stringers:");
     let mut input_text = String::new();
     io::stdin()
@@ -174,6 +182,39 @@ fn main() {
     };
     let stringersinput = trimmed.parse::<u16>().unwrap();
 
-    analyse("output.csv", stringersinput).discretize(&vec![12.2, 20., 25., 30.]).save("Design.csv");
-    analyse("output-1.csv", stringersinput).discretize(&vec![12.2, 20., 25., 30.]).save("Design-1.csv");
+    println!("Enter the spanwise positions where you want to split don't enter 0 or the halfspan you donkey(Enter n to proceed):");
+    let mut sections: Vec<f64> = Vec::new();
+    while true{
+        let mut input_text = String::new();
+        io::stdin()
+            .read_line(&mut input_text)
+            .expect("failed to read from stdin");
+
+        let trimmed = input_text.trim();
+        if trimmed == "N" || trimmed == "n"{
+            break;
+        }
+        match trimmed.parse::<f64>() {
+            Ok(i) => print!(""),
+            Err(..) => {println!("this was not a float: {}", trimmed); continue;},
+        };
+        sections.push(trimmed.parse::<f64>().unwrap());
+
+    }
+
+    println!("Which wingboxstyle do you want to use? 0 for kinked wingbox, 1: for straight wingbox:");
+    let mut input_text = String::new();
+    io::stdin()
+        .read_line(&mut input_text)
+        .expect("failed to read from stdin");
+
+    let trimmed = input_text.trim();
+    match trimmed.parse::<i32>() {
+        Ok(i) => println!("Good input"),
+        Err(..) => println!("this was not an integer: {}", trimmed),
+    };
+    let flaggy = trimmed.parse::<i32>().unwrap();
+
+    analyse("output.csv", stringersinput, flaggy > 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design.csv");
+    analyse("output-1.csv", stringersinput, flaggy > 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design-1.csv");
 }
