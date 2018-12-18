@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Malte Wegener <m.wegener@forze-delft.nl>"]
 
 [dependencies]
+byteorder = "1"

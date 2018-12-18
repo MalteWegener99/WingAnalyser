@@ -14,6 +14,11 @@ use std::fmt;
 use std::io::LineWriter;
 use std::io;
 use std::string;
+mod triangle;
+use triangle::{Triangle, Vec3, write_stl};
+mod stl;
+use stl::make_stl;
+
 
 fn chord(y: f64) -> f64{
     if y<=12.2{
@@ -24,6 +29,11 @@ fn chord(y: f64) -> f64{
         return 10.02-(10.02-5.52)/(32.5-12.2)*(y-12.2);
     }
 }
+
+fn chord2(y: f32) -> f32{
+    chord(y as f64) as f32
+}
+
 fn chordlen(y: f64) -> f64{
     10.02-(10.02-5.52)/(32.5-12.2)*(y-12.2)
 }
@@ -170,6 +180,18 @@ impl discretize for Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
 
 
 fn main(){
+
+    let vecci1 = Vec3{x: 0., y: 0., z: 0.};
+    let vecci2 = Vec3{x: 1., y: -1., z: 0.};
+    let vecci3 = Vec3{x: 1., y: 1., z: 0.};
+    let mut vc: Vec<Triangle> = Vec::new();
+    vc.push(Triangle::new(&vecci1, &vecci2, &vecci3));
+    vc.push(Triangle::new(&vecci1, &vecci2, &vecci3.scale(-1.)));
+    vc.push(Triangle::new(&vecci1, &vecci2.scale(-1.), &vecci3.scale(-1.)));
+    vc.push(Triangle::new(&vecci1, &vecci2.scale(-1.), &vecci3));
+    write_stl("test.stl", &vc);
+    make_stl((40.01 as f32).to_radians(), &chord2, 32.5);
+
     println!("Enter the minumum amount of stringers:");
     let mut input_text = String::new();
     io::stdin()
