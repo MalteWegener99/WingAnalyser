@@ -105,7 +105,7 @@ impl section_prototype{
             unitvecs[i] = self.vertices[(i+1)%4].substract(&self.vertices[i]).unitvec();
         }
 
-        let subdivs = 1000;
+        let subdivs = 100;
 
         let ds: f64 = length.iter().sum::<f64>()/(subdivs as f64);
         let mut corners: [usize; 5] = [0; 5];

@@ -30,9 +30,13 @@ fn stringer(dx: Vec3, normal: Vec3, origin: &Vec3) -> Vec<Vec3>{
 	vc
 }
 
-fn stringer_along_line(line: Vec<Vec3>, normal: Vec<Vec3>) -> Vec<Triangle>{
+fn stringer_along_line(line: &Vec<Vec3>, normal: &Vec<Vec3>) -> Vec<Triangle>{
 	if line.len() != normal.len(){
 		panic!("must have same len");
+	}
+
+	if line.len() == 0{
+		return Vec::new();
 	}
 	let mut sections: Vec<Vec<Vec3>> = Vec::new();
 	//first create all the sections
@@ -77,7 +81,31 @@ fn stringer_along_line(line: Vec<Vec3>, normal: Vec<Vec3>) -> Vec<Triangle>{
 	triangles
 }
 
-pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std::io::Error>{
+fn interpolate(array: &[Vec3], y: f32) -> Vec3{
+	if y > array[array.len()-1].y{ panic!("For fucks sake you donkey");}
+	let mut i = 0;
+	while array[i].y < y{
+		i+=1;
+	}
+
+	let z = (y-array[i].y)*(array[i+1].z-array[i].z)/(array[i+1].y-array[i].y)+array[i].z;
+	Vec3{x: 0., y: y, z: z}
+}
+
+fn interpolatenormal(array: &[Vec3], y: f32) -> Vec3{
+	if y > array[array.len()-1].y{ panic!("For fucks sake you donkey");}
+	let mut i = 0;
+	while array[i].y < y{
+		i+=1;
+	}
+
+	let dz = (array[i+1].z-array[i].z);
+	let dy = (array[i+1].y-array[i].y);
+
+	Vec3{x: 0., y: dy, z: dz}.cross(&Vec3{x: 1., y: 0., z: 0.})
+}
+
+pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32, stringers: [Vec<(f32, f32)>; 2]) -> Result<(), std::io::Error>{
     let fspar = 0.2;
     let rspar = 0.65;
     let vertices: [Vec3; 4] = [Vec3{x: 0., y: fspar, z: 0.},Vec3{x: 0., y: rspar, z: -0.0182},Vec3{x: 0., y: rspar, z: -0.1051},Vec3{x: 0., y: fspar, z: -0.1092}];
@@ -185,16 +213,37 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std
     let mut x = 0.;
     let dx = 0.01;
 
-	let mut ln = Vec::new();
-	let mut nm = Vec::new();
-	let mut ct = 0;
+	let mut lines_top: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[1].len());
+	let mut norms_top: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[1].len());
+	let mut lines_bot: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[0].len());
+	let mut norms_bot: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[0].len());
+
+	//init them
+	for _i in 0..stringers[0].len(){
+		lines_bot.push(Vec::<Vec3>::new());
+		norms_bot.push(Vec::<Vec3>::new());
+	}
+
+	for _i in 0..stringers[1].len(){
+		lines_top.push(Vec::<Vec3>::new());
+		norms_top.push(Vec::<Vec3>::new());
+	}
 
     while x+dx <= span{
-		if ct%1 == 0{
-			ln.push(Vec3{x: x, y: 0., z: 0.});
-			nm.push(Vec3{x: 0., y: 0.5, z: -1.});
+
+		for i in 0..stringers[0].len(){
+			if x < stringers[0][i].1{
+				lines_bot[i].push(interpolate(&lowersrf, stringers[0][i].0).scale(chord(x)).add(&Vec3{x: x, y: x*sweep.tan(), z: 0.}).invertz().add(&dihedral(x)));
+				norms_bot[i].push(interpolatenormal(&lowersrf, stringers[0][i].0).scale(-1.));
+			}
 		}
-		ct+=1;
+	
+		for i in 0..stringers[1].len(){
+			if x < stringers[1][i].1{
+				lines_top[i].push(interpolate(&upprsrf, stringers[1][i].0).scale(chord(x)).add(&Vec3{x: x, y: x*sweep.tan(), z: 0.}).invertz().add(&dihedral(x)));
+				norms_top[i].push(interpolatenormal(&upprsrf, stringers[1][i].0));
+			}
+		}
 
         //frontspar
         let mut points: [Vec3; 4] = [Vec3{x:0.,y:0.,z:0.}; 4];
@@ -252,24 +301,33 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std
 
 	if lowersrf.len() == upprsrf.len(){println!("nice");}
 
-    /*write_stl("frontspar.stl", &frontspar)?;
+    write_stl("frontspar.stl", &frontspar)?;
     write_stl("rearspar.stl", &rearspar)?;
 	write_stl("Topskin.stl", &topskin)?;
-	write_stl("Botskin.stl", &botskin)?;*/
+	write_stl("Botskin.stl", &botskin)?;
 
-	let stringer = stringer_along_line(ln, nm);
-	println!("{}", stringer.len());
+	let mut botstringertriangles: Vec<Triangle> = Vec::new();
+	let mut topstringertriangles: Vec<Triangle> = Vec::new();
 
-	write_stl("teststr.stl", &stringer)?;
+	for i in 0..lines_bot.len(){
+		botstringertriangles.append(&mut stringer_along_line(&lines_bot[i], &norms_bot[i]));
+	}
 
-	/*let mut merged: Vec<Triangle> = Vec::new();
+	for i in 0..lines_top.len(){
+		topstringertriangles.append(&mut stringer_along_line(&lines_top[i], &norms_top[i]));
+	}
+
+	write_stl("Botstr.stl", &botstringertriangles)?;
+	write_stl("Topstr.stl", &topstringertriangles)?;
+
+	let mut merged: Vec<Triangle> = Vec::new();
 	merged.append(&mut frontspar);
 	merged.append(&mut rearspar);
 	merged.append(&mut topskin);
 	merged.append(&mut botskin);
+	merged.append(&mut botstringertriangles);
+	merged.append(&mut topstringertriangles);
 
 	write_stl("merged.stl", &merged)?;
-
-    println!("saved");*/
     Ok(())
 }

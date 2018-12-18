@@ -24,7 +24,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
         vertices: verti,
         skin_thicknesses: [0.0001; 4],
         stringers: [minstr; 2],
-        area_stringer: 1200e-6,
+        area_stringer: 3000e-6,
     };
 
     let mut done = false;
@@ -81,7 +81,7 @@ pub fn optimize(torque: f64, shear: f64, moment: f64, factor: f64, verti: [Vec2;
 
             for i in 0..2{
                 if maxes.1[i*2].abs()*1.15 >= sigmax{
-                    strs_[i] += 1*((i as u16)+1);
+                    strs_[i] += 1;
                 }
                 else if strs_[i] > minstr{
                     strs_[i] -= 1;

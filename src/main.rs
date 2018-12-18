@@ -18,6 +18,8 @@ mod triangle;
 use triangle::{Triangle, Vec3, write_stl};
 mod stl;
 use stl::make_stl;
+mod layoutmngr;
+use layoutmngr::generate_layout;
 
 
 fn chord(y: f64) -> f64{
@@ -58,7 +60,7 @@ fn analyse(file: &str, minstr: u16, flag: bool) -> Vec<([f64; 4], [u16; 2], [f64
         else{
             [Vec2{x: 0., y: 0.},Vec2{x: 0.45*chordlen(thing.y), y: 0.0182*chord(thing.y)},Vec2{x: 0.45*chordlen(thing.y), y: 0.1051*chord(thing.y)},Vec2{x: 0., y: 0.1092*chord(thing.y)}]
         };
-        let section = optimize(thing.torsion, thing.shear, thing.moment, 0.00001, vertices, 30).generateanalysable();
+        let section = optimize(thing.torsion, thing.shear, thing.moment, 0.00001, vertices, minstr).generateanalysable();
         let maxes = section.get_max_stress(thing.torsion, thing.shear, thing.moment);
         for i in 0..4{
             let mut name = "";
@@ -82,6 +84,19 @@ fn analyse(file: &str, minstr: u16, flag: bool) -> Vec<([f64; 4], [u16; 2], [f64
     println!("I took {} seconds", (now.elapsed().as_secs() as f64));
     println!("And i weigh {} kg", weight);
     results
+}
+
+pub fn savemax(one: Vec<(f64, [f64; 4], [u16; 2])>, two: Vec<(f64, [f64; 4], [u16; 2])>) -> Vec<(f64, [f64; 4], [u16; 2])>{
+    let mut vc: Vec<(f64, [f64; 4], [u16; 2])> = Vec::new();
+
+    for i in 0..one.len(){
+        let y = one[i].0;
+        let skin = [one[i].1[0].max(two[i].1[0]), one[i].1[1].max(two[i].1[1]), one[i].1[2].max(two[i].1[2]), one[i].1[3].max(two[i].1[3])];
+        let str = [one[i].2[0].max(two[i].2[0]), one[i].2[1].max(two[i].2[1])];
+        vc.push((y,skin,str));
+    }
+
+    vc
 }
 
 trait discretize{
@@ -181,17 +196,6 @@ impl discretize for Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
 
 fn main(){
 
-    let vecci1 = Vec3{x: 0., y: 0., z: 0.};
-    let vecci2 = Vec3{x: 1., y: -1., z: 0.};
-    let vecci3 = Vec3{x: 1., y: 1., z: 0.};
-    let mut vc: Vec<Triangle> = Vec::new();
-    vc.push(Triangle::new(&vecci1, &vecci2, &vecci3));
-    vc.push(Triangle::new(&vecci1, &vecci2, &vecci3.scale(-1.)));
-    vc.push(Triangle::new(&vecci1, &vecci2.scale(-1.), &vecci3.scale(-1.)));
-    vc.push(Triangle::new(&vecci1, &vecci2.scale(-1.), &vecci3));
-    write_stl("test.stl", &vc);
-    make_stl((40.01 as f32).to_radians(), &chord2, 32.5);
-
     println!("Enter the minumum amount of stringers:");
     let mut input_text = String::new();
     io::stdin()
@@ -238,6 +242,8 @@ fn main(){
     };
     let flaggy = trimmed.parse::<i32>().unwrap();
 
-    analyse("output.csv", stringersinput, flaggy == 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design.csv");
-    analyse("output-1.csv", stringersinput, flaggy != 0).discretize(&vec![12.2, 20., 25., 30.]).save("Design-1.csv");
+    let high = analyse("output.csv", stringersinput, flaggy == 0).discretize(&sections);
+    let low = analyse("output-1.csv", stringersinput, flaggy != 0).discretize(&sections);
+    let max = savemax(high, low);
+    make_stl((40.01 as f32).to_radians(), &chord2, 32.5 as f32, generate_layout(&max));
 }
