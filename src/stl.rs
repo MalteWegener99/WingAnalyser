@@ -9,22 +9,22 @@ fn dihedral(x: f32) -> Vec3{
 }
 
 fn stringer(dx: Vec3, normal: Vec3, origin: &Vec3) -> Vec<Vec3>{
-	let w = 5.;
-	let h = 5.;
-	let t = 1.;
+	let w = 0.05;
+	let h = 0.05;
+	let t = 0.01;
 	let ortho = dx.cross(&normal).unitvec();
 	let mut vc: Vec<Vec3> = Vec::new();
 	vc.push(Vec3{
 		x: 0.,
 		y: 0.,
 		z: 0.,
-	});
-	vc.push(ortho.scale(w));
+	}.add(origin));
+	vc.push(ortho.scale(w).add(origin));
 	vc.push(ortho.scale(w).add(&normal.scale(t)).add(origin));
 	vc.push(ortho.scale(t).add(&normal.scale(t)).add(origin));
 	vc.push(ortho.scale(t).add(&normal.scale(h)).add(origin));
-	vc.push(ortho.scale(w-t).add(&normal.scale(h)).add(origin));
-	vc.push(ortho.scale(w-t).add(&normal.scale(h-t)).add(origin));
+	vc.push(ortho.scale(-1.*(w-t)).add(&normal.scale(h)).add(origin));
+	vc.push(ortho.scale(-1.*(w-t)).add(&normal.scale(h-t)).add(origin));
 	vc.push(ortho.scale(0.).add(&normal.scale(h-t)).add(origin));
 
 	vc
@@ -38,10 +38,10 @@ fn stringer_along_line(line: Vec<Vec3>, normal: Vec<Vec3>) -> Vec<Triangle>{
 	//first create all the sections
 	for i in 0..line.len(){
 		if i != line.len()-1{
-			sections.push(stringer(line[i+1].sub(&line[i].unitvec()), normal[i].unitvec(), &line[i]));
+			sections.push(stringer(line[i+1].sub(&line[i]).unitvec(), normal[i].unitvec(), &line[i]));
 		}
 		else{
-			sections.push(stringer(line[i].sub(&line[i-1].unitvec()), normal[i].unitvec(), &line[i]));
+			sections.push(stringer(line[i].sub(&line[i-1]).unitvec(), normal[i].unitvec(), &line[i]));
 		}
 	}
 
@@ -49,7 +49,7 @@ fn stringer_along_line(line: Vec<Vec3>, normal: Vec<Vec3>) -> Vec<Triangle>{
 
 	for i in 0..sections.len()-1{
 		//fucking tesselation
-		triangles.push(Triangle::new(&sections[i][0], &sections[i+1][0], &sections[i+1][1]));
+		triangles.push(Triangle::new(&sections[i][0], &sections[i+1][0], &sections[i+1][1]).invertn());
 		triangles.push(Triangle::new(&sections[i][0], &sections[i][1], &sections[i+1][1]));
 
 		triangles.push(Triangle::new(&sections[i][2], &sections[i][1], &sections[i+1][1]));
@@ -190,9 +190,9 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std
 	let mut ct = 0;
 
     while x+dx <= span{
-		if ct%10 == 0{
+		if ct%1 == 0{
 			ln.push(Vec3{x: x, y: 0., z: 0.});
-			nm.push(Vec3{x: 0., y: 0., z: -1.});
+			nm.push(Vec3{x: 0., y: 0.5, z: -1.});
 		}
 		ct+=1;
 
@@ -252,18 +252,17 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std
 
 	if lowersrf.len() == upprsrf.len(){println!("nice");}
 
-    write_stl("frontspar.stl", &frontspar)?;
+    /*write_stl("frontspar.stl", &frontspar)?;
     write_stl("rearspar.stl", &rearspar)?;
 	write_stl("Topskin.stl", &topskin)?;
-	write_stl("Botskin.stl", &botskin)?;
-	
-	for i in 0..ln.len(){
-		println!("{:?}", ln[i]);
-	}
-	
-	write_stl("teststr.stl", &stringer_along_line(ln, nm))?;
+	write_stl("Botskin.stl", &botskin)?;*/
 
-	let mut merged: Vec<Triangle> = Vec::new();
+	let stringer = stringer_along_line(ln, nm);
+	println!("{}", stringer.len());
+
+	write_stl("teststr.stl", &stringer)?;
+
+	/*let mut merged: Vec<Triangle> = Vec::new();
 	merged.append(&mut frontspar);
 	merged.append(&mut rearspar);
 	merged.append(&mut topskin);
@@ -271,6 +270,6 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32) -> Result<(), std
 
 	write_stl("merged.stl", &merged)?;
 
-    println!("saved");
+    println!("saved");*/
     Ok(())
 }
