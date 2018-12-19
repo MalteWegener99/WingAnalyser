@@ -56,14 +56,14 @@ pub fn generate_layout(sections: &Vec<(f64, [f64; 4], [u16; 2])>) -> [Vec<(f32, 
         if (section.2[0] as usize) > stringsup.len(){
             if stringsup.len() == 0{
                 for i in 0..section.2[0]{
-                    stringsup.push(((fspar as f32)+0.01 + (i as f32)*((rspar-fspar-0.02) as f32)/(section.2[0]as f32) , (section.0 as f32)));
+                    stringsup.push(((fspar as f32)+0.01 + (i as f32)*((rspar-fspar-0.02) as f32)/(section.2[0]as f32) , 32.5));
                 }
             }
             else if (section.2[0] as usize)-stringsup.len() < stringsup.len(){
                 for i in 0..stringsup.len()-1{
                     let uno = stringsup[i].0;
                     let dos = stringsup[i+1].0;
-                    stringsup.push(((uno+dos)/2., (section.0 as f32)));
+                    stringsup.push(((uno+dos)/2., 12.2));
                 }
             }
 
@@ -71,8 +71,8 @@ pub fn generate_layout(sections: &Vec<(f64, [f64; 4], [u16; 2])>) -> [Vec<(f32, 
                 for i in 0..stringsup.len()-1{
                     let uno = stringsup[i].0;
                     let dos = stringsup[i+1].0;
-                    stringsup.push(((uno+dos)/3., (section.0 as f32)));
-                    stringsup.push(((uno+dos)/3.*2., (section.0 as f32)));
+                    stringsup.push(((uno+dos)/3., 12.2));
+                    stringsup.push(((uno+dos)/3.*2., 12.2));
                 }
             }
         }

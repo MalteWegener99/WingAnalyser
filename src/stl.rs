@@ -9,8 +9,8 @@ fn dihedral(x: f32) -> Vec3{
 }
 
 fn stringer(dx: Vec3, normal: Vec3, origin: &Vec3) -> Vec<Vec3>{
-	let w = 0.05;
-	let h = 0.05;
+	let w = 0.02;
+	let h = 0.10;
 	let t = 0.01;
 	let ortho = dx.cross(&normal).unitvec();
 	let mut vc: Vec<Vec3> = Vec::new();
@@ -99,10 +99,10 @@ fn interpolatenormal(array: &[Vec3], y: f32) -> Vec3{
 		i+=1;
 	}
 
-	let dz = (array[i+1].z-array[i].z);
-	let dy = (array[i+1].y-array[i].y);
+	let dz = -(array[i+1].z-array[i].z);
+	let dy = -(array[i+1].y-array[i].y);
 
-	Vec3{x: 0., y: dy, z: dz}.cross(&Vec3{x: 1., y: 0., z: 0.})
+	Vec3{x: 0., y: dy, z: dz}.unitvec().cross(&Vec3{x: 1., y: 0., z: 0.})
 }
 
 pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32, stringers: [Vec<(f32, f32)>; 2]) -> Result<(), std::io::Error>{
