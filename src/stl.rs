@@ -9,7 +9,7 @@ fn dihedral(x: f32) -> Vec3{
 }
 
 fn stringer(dx: Vec3, normal: Vec3, origin: &Vec3) -> Vec<Vec3>{
-	let w = 0.02;
+	let w = 0.05;
 	let h = 0.10;
 	let t = 0.01;
 	let ortho = dx.cross(&normal).unitvec();
@@ -99,8 +99,8 @@ fn interpolatenormal(array: &[Vec3], y: f32) -> Vec3{
 		i+=1;
 	}
 
-	let dz = -(array[i+1].z-array[i].z);
-	let dy = -(array[i+1].y-array[i].y);
+	let dz = (array[i+1].z-array[i].z);
+	let dy = (array[i+1].y-array[i].y);
 
 	Vec3{x: 0., y: dy, z: dz}.unitvec().cross(&Vec3{x: 1., y: 0., z: 0.})
 }
@@ -211,7 +211,7 @@ pub fn make_stl(sweep: f32, chord: &Fn(f32) -> f32, span: f32, stringers: [Vec<(
 	Vec3{x: 0., y:0.650000, z: 0.034800-0.054700}];
 
     let mut x = 0.;
-    let dx = 0.01;
+    let dx = 5.;
 
 	let mut lines_top: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[1].len());
 	let mut norms_top: Vec<Vec<Vec3>> = Vec::with_capacity(stringers[1].len());

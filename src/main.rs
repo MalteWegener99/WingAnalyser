@@ -119,6 +119,18 @@ impl save for Vec<(f64, [f64; 4], [u16; 2])>{
     }
 }
 
+impl save for Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
+    fn save(&self, file: &str) -> Result<(),io::Error>{
+        let mut output = File::create(file)?;
+        output.write_all("shear, shear, shear, shear, stress, stress, stress, stress\r\n".as_bytes())?;
+        for thing in self{
+            output.write_all(format!("{},{},{},{},{},{},{},{}\r\n", thing.2[0], thing.2[1], thing.2[2], thing.2[3], thing.3[0], thing.3[1], thing.3[2], thing.3[3]).as_bytes())?;
+        }
+
+        Ok(())
+    }
+}
+
 impl discretize for Vec<([f64; 4], [u16; 2], [f64; 4], [f64; 4])>{
     fn discretize(&self, sections: &Vec<f64>) -> Vec<(f64, [f64; 4], [u16; 2])>{
         let lowersurface: Vec<f64> = self.into_iter().map(|x| x.0[0]).collect();
@@ -243,7 +255,17 @@ fn main(){
     let flaggy = trimmed.parse::<i32>().unwrap();
 
     let high = analyse("output.csv", stringersinput, flaggy == 0).discretize(&sections);
-    let low = analyse("output-1.csv", stringersinput, flaggy != 0).discretize(&sections);
-    let max = savemax(high, low);
-    make_stl((40.01 as f32).to_radians(), &chord2, 32.5 as f32, generate_layout(&max));
+    //let low = analyse("output-1.csv", stringersinput, flaggy != 0).discretize(&sections);
+    //let max = savemax(high, low);
+
+    let mut sum = 0.;
+    let mut x = 0.;
+    while x <= 32.5{
+        sum += chord(x).powi(3)*0.01;
+        x += 0.01;
+    }
+
+    println!("{}", sum/32.5);
+
+    //make_stl((40.01 as f32).to_radians(), &chord2, 32.5 as f32, generate_layout(&max));
 }
